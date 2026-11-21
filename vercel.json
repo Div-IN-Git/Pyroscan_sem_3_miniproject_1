@@ -1,14 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "outputDirectory": "frontend",
   "redirects": [
-    { "source": "/", "destination": "/frontend/index.html", "permanent": false }
+    { "source": "/", "destination": "/index.html", "permanent": false }
   ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.py" }
   ],
   "headers": [
     {
-      "source": "/frontend/index.html",
+      "source": "/index.html",
       "headers": [
         { "key": "Cache-Control", "value": "no-store" }
       ]
