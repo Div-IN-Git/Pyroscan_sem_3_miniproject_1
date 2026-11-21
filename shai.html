@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PyroSCAN – Team Pyro | SAIH_26_203</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: #050505; color: #e5e5e5; overflow: hidden; height: 100vh; }
+  ::selection { background: #3b82f6; color: #fff; }
+
+  .slide { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.6s cubic-bezier(0.4,0,0.2,1), transform 0.6s cubic-bezier(0.4,0,0.2,1); transform: translateY(30px) scale(0.97); }
+  .slide.active { opacity: 1; pointer-events: auto; transform: translateY(0) scale(1); }
+
+  .slide-inner { width: 100%; max-width: 1100px; padding: 40px 60px; }
+
+  @media (max-width: 768px) {
+    .slide-inner { padding: 24px 20px; }
+  }
+
+  .gradient-text { background: linear-gradient(to bottom, #fff, rgba(255,255,255,0.9), rgba(255,255,255,0.5)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .blue-gradient-text { background: linear-gradient(135deg, #60a5fa, #3b82f6, #2563eb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .fire-gradient-text { background: linear-gradient(135deg, #f97316, #ef4444, #dc2626); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+  .glow-blue { box-shadow: 0 0 40px rgba(29,78,216,0.25), 0 0 80px rgba(29,78,216,0.1); }
+  .glow-orange { box-shadow: 0 0 40px rgba(249,115,22,0.2), 0 0 80px rgba(249,115,22,0.08); }
+
+  .card { background: rgba(23,23,23,0.5); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 24px; backdrop-filter: blur(12px); transition: all 0.3s; }
+  .card:hover { border-color: rgba(255,255,255,0.12); background: rgba(30,30,30,0.7); }
+
+  .tag { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 500; letter-spacing: 0.05em; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03); }
+  .tag-blue { border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.08); color: #60a5fa; }
+  .tag-orange { border-color: rgba(249,115,22,0.3); background: rgba(249,115,22,0.08); color: #fb923c; }
+  .tag-red { border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.08); color: #f87171; }
+  .tag-green { border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.08); color: #4ade80; }
+
+  .flow-arrow { color: rgba(255,255,255,0.15); font-size: 24px; }
+
+  .progress-bar { position: fixed; top: 0; left: 0; height: 3px; background: linear-gradient(90deg, #f97316, #ef4444, #3b82f6); z-index: 100; transition: width 0.4s ease; }
+
+  .nav-dots { position: fixed; right: 24px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 10px; z-index: 90; }
+  .nav-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.15); cursor: pointer; transition: all 0.3s; }
+  .nav-dot.active { background: #f97316; box-shadow: 0 0 10px rgba(249,115,22,0.5); transform: scale(1.3); }
+  .nav-dot:hover { background: rgba(255,255,255,0.4); }
+
+  .slide-num { position: fixed; bottom: 24px; left: 60px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: rgba(255,255,255,0.2); z-index: 90; }
+
+  .nav-hint { position: fixed; bottom: 24px; right: 60px; font-size: 12px; color: rgba(255,255,255,0.15); z-index: 90; display: flex; align-items: center; gap: 8px; }
+  @media (max-width: 768px) { .nav-dots { right: 10px; } .slide-num { left: 20px; } .nav-hint { display: none; } }
+
+  .blob { position: absolute; border-radius: 50%; filter: blur(160px); pointer-events: none; }
+
+  .animate-in { opacity: 0; transform: translateY(20px); transition: all 0.7s cubic-bezier(0.4,0,0.2,1); }
+  .slide.active .animate-in { opacity: 1; transform: translateY(0); }
+  .slide.active .animate-in.d1 { transition-delay: 0.1s; }
+  .slide.active .animate-in.d2 { transition-delay: 0.2s; }
+  .slide.active .animate-in.d3 { transition-delay: 0.3s; }
+  .slide.active .animate-in.d4 { transition-delay: 0.4s; }
+  .slide.active .animate-in.d5 { transition-delay: 0.5s; }
+  .slide.active .animate-in.d6 { transition-delay: 0.6s; }
+
+  .stat-card { text-align: center; padding: 20px; }
+  .stat-number { font-size: 28px; font-weight: 700; }
+  .stat-label { font-size: 12px; color: #a3a3a3; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .method-flow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .method-box { padding: 14px 22px; border-radius: 12px; font-size: 14px; font-weight: 500; border: 1px solid rgba(255,255,255,0.08); background: rgba(23,23,23,0.6); }
+
+  .tech-badge { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 500; background: rgba(23,23,23,0.7); border: 1px solid rgba(255,255,255,0.06); transition: all 0.3s; }
+  .tech-badge:hover { border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.06); }
+
+  .showstopper-box { position: relative; padding: 28px 32px; border-radius: 16px; background: linear-gradient(135deg, rgba(249,115,22,0.08), rgba(239,68,68,0.06)); border: 1px solid rgba(249,115,22,0.2); overflow: hidden; }
+  .showstopper-box::before { content: ''; position: absolute; top: -1px; left: -1px; right: -1px; bottom: -1px; border-radius: 16px; background: linear-gradient(135deg, rgba(249,115,22,0.3), transparent, rgba(239,68,68,0.2)); z-index: -1; opacity: 0.3; }
+
+  .screenshot-placeholder { width: 100%; aspect-ratio: 16/9; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); background: #0A0A0A; position: relative; }
+  .screenshot-placeholder img { width: 100%; height: 100%; object-fit: cover; }
+
+  .obj-item { display: flex; gap: 14px; align-items: flex-start; padding: 14px 0; }
+  .obj-num { flex-shrink: 0; width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; background: rgba(249,115,22,0.1); color: #fb923c; border: 1px solid rgba(249,115,22,0.2); }
+
+  .damage-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 640px) { .damage-grid { grid-template-columns: 1fr; } }
+
+  .end-user-list { display: flex; flex-wrap: wrap; gap: 10px; }
+
+  .ref-link { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 10px; background: rgba(23,23,23,0.4); border: 1px solid rgba(255,255,255,0.05); font-size: 13px; color: #a3a3a3; transition: all 0.3s; text-decoration: none; }
+  .ref-link:hover { color: #e5e5e5; border-color: rgba(255,255,255,0.12); background: rgba(30,30,30,0.6); }
+  .ref-link .ref-title { color: #e5e5e5; font-weight: 500; }
+
+  @keyframes pulse-slow { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }
+  .pulse-slow { animation: pulse-slow 4s ease-in-out infinite; }
+
+  @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  .float { animation: float 5s ease-in-out infinite; }
+
+  .divider { width: 60px; height: 3px; background: linear-gradient(90deg, #f97316, #ef4444); border-radius: 2px; }
+
+  .budget-highlight { display: inline-flex; align-items: center; gap: 8px; padding: 10px 24px; border-radius: 12px; background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.25); color: #4ade80; font-size: 18px; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<!-- Progress Bar -->
+<div class="progress-bar" id="progressBar" style="width: 0%"></div>
+
+<!-- Navigation Dots -->
+<div class="nav-dots" id="navDots"></div>
+
+<!-- Slide Number -->
+<div class="slide-num" id="slideNum">01 / 13</div>
+
+<!-- Navigation Hint -->
+<div class="nav-hint">
+  <i data-lucide="arrow-left" style="width:14px;height:14px"></i>
+  <i data-lucide="arrow-right" style="width:14px;height:14px"></i>
+  <span>Navigate</span>
+</div>
+
+<!-- ==================== SLIDE 1: TITLE ==================== -->
+<div class="slide active" data-slide="0">
+  <div class="blob pulse-slow" style="width:800px;height:800px;background:rgba(249,115,22,0.04);top:-200px;right:-200px;"></div>
+  <div class="blob pulse-slow" style="width:600px;height:600px;background:rgba(59,130,246,0.03);bottom:-200px;left:-200px;"></div>
+  <div class="slide-inner text-center">
+    <div class="animate-in d1">
+      <div class="flex items-center justify-center gap-3 mb-6 flex-wrap">
+        <span class="tag tag-orange">SAIH_26_203</span>
+        <span class="tag tag-blue">Track 10: Open Innovation</span>
+        <span class="tag" style="border-color:rgba(255,255,255,0.1)">19 April 2026</span>
+      </div>
+    </div>
+    <div class="animate-in d2">
+      <div class="flex items-center justify-center gap-3 mb-4">
+        <div style="width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,rgba(249,115,22,0.15),rgba(239,68,68,0.1));border:1px solid rgba(249,115,22,0.2);display:flex;align-items:center;justify-content:center;">
+          <i data-lucide="flame" style="width:24px;height:24px;color:#fb923c"></i>
+        </div>
+        <span style="font-size:16px;font-weight:600;color:#a3a3a3;letter-spacing:0.15em;text-transform:uppercase;">Team Pyro</span>
+      </div>
+    </div>
+    <h1 class="animate-in d3 gradient-text" style="font-size:clamp(48px,8vw,84px);font-weight:700;line-height:0.95;letter-spacing:-0.03em;margin-bottom:16px;">
+      PyroSCAN
+    </h1>
+    <p class="animate-in d4" style="font-size:clamp(18px,2.5vw,24px);color:#a3a3a3;font-weight:300;margin-bottom:8px;">
+      <span style="font-family:'Playfair Display',serif;font-style:italic;color:#fb923c;">Predict</span> ·
+      <span style="font-family:'Playfair Display',serif;font-style:italic;color:#f87171;">Prevent</span> ·
+      <span style="font-family:'Playfair Display',serif;font-style:italic;color:#60a5fa;">Protect</span>
+    </p>
+    <p class="animate-in d5" style="font-size:15px;color:#525252;max-width:500px;margin:20px auto 0;line-height:1.6;">
+      AI-Powered Forest Fire Risk Prediction System<br>
+      <span style="font-size:13px;">2nd SmallAI Hackathon 2026 — Buffdale ACM Chapter</span>
+    </p>
+    <div class="animate-in d6" style="margin-top:32px;">
+      <div class="flex items-center justify-center gap-6 flex-wrap" style="font-size:13px;color:#525252;">
+        <span>KCC Institute of Technology and Management</span>
+        <span style="color:rgba(255,255,255,0.1)">|</span>
+        <span>Divyanshu Swain · Jai Mall</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 2: BACKGROUND ==================== -->
+<div class="slide" data-slide="1">
+  <div class="blob" style="width:500px;height:500px;background:rgba(249,115,22,0.03);top:10%;right:-100px;"></div>
+  <div class="slide-inner">
+    <div class="animate-in d1">
+      <span class="tag tag-orange mb-4" style="display:inline-flex;">01 — Background</span>
+    </div>
+    <h2 class="animate-in d2 gradient-text" style="font-size:clamp(32px,5vw,48px);font-weight:600;letter-spacing:-0.02em;margin:16px 0 24px;line-height:1.1;">
+      The Growing Crisis<br>of Forest Fires
+    </h2>
+    <div class="grid gap-4" style="max-width:700px;">
+      <div class="animate-in d2 card flex gap-4 items-start">
+        <div style="flex-shrink:0;width:40px;height:40px;border-radius:12px;background:rgba(239,68,68,0.1);display:flex;align-items:center;justify-content:center;">
+          <i data-lucide="trees" style="width:20px;height:20px;color:#f87171"></i>
+        </div>
+        <div>
+          <p style="font-size:15px;line-height:1.6;">Forest fires cause <strong style="color:#e5e5e5;">large-scale ecological damage</strong>, biodiversity loss, and significant economic impact across India.</p>
+        </div>
+      </div>
+      <div class="animate-in d3 card flex gap-4 items-start">
+        <div style="flex-shrink:0;width:40px;height:40px;border-radius:12px;background:rgba(249,115,22,0.1);display:flex;align-items:center;justify-content:center;">
+          <i data-lucide="thermometer-sun" style="width:20px;height:20px;color:#fb923c"></i>
+        </div>
+        <div>
+          <p style="font-size:15px;line-height:1.6;">Many regions globally face recurring fires due to <strong style="color:#e5e5e5;">dry vegetation, rising temperatures</strong>, and human activity.</p>
+        </div>
+      </div>
+      <div class="animate-in d4 card flex gap-4 items-start">
+        <div style="flex-shrink:0;width:40px;height:40px;border-radius:12px;background:rgba(239,68,68,0.1);display:flex;align-items:center;justify-content:center;">
+          <i data-lucide="shield-alert" style="width:20px;height:20px;color:#f87171"></i>
+        </div>
+        <div>
+          <p style="font-size:15px;line-height:1.6;">Current monitoring systems are <strong style="color:#f87171;">reactive rather than predictive</strong> — fires are detected after they've already begun.</p>
+        </div>
+      </div>
+    </div>
+    <div class="animate-in d5 mt-6">
+      <p style="font-size:13px;color:#525252;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.1em;font-weight:500;">End Users</p>
+      <div class="end-user-list">
+        <span class="tag tag-green"><i data-lucide="landmark" style="width:12px;height:12px"></i> Forest Departments</span>
+        <span class="tag tag-green"><i data-lucide="siren" style="width:12px;height:12px"></i> Disaster Management</span>
+        <span class="tag tag-green"><i data-lucide="leaf" style="width:12px;height:12px"></i> Environmental Agencies</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 3: PROBLEM STATEMENT ==================== -->
+<div class="slide" data-slide="2">
+  <div class="blob" style="width:600px;height:600px;background:rgba(239,68,68,0.03);bottom:-200px;left:-100px;"></div>
+  <div class="slide-inner">
+    <div class="animate-in d1">
+      <span class="tag tag-red mb-4" style="display:inline-flex;">02 — Problem Statement</span>
+    </div>
+    <h2 class="animate-in d2 gradient-text" style="font-size:clamp(28px,4.5vw,44px);font-weight:600;letter-spacing:-0.02em;margin:16px 0 20px;line-height:1.15;">
+      Reactive Systems Are<br>Not Enough
+    </h2>
+    <div class="animate-in d3" style="max-width:680px;">
+      <p style="font-size:16px;color:#a3a3a3;line-height:1.7;margin-bottom:28px;">
+        Forest fire management currently relies on <strong style="color:#f87171;">post-ignition detection</strong> and manual risk assessment. There is <strong style="color:#e5e5e5;">no unified system</strong> that combines satellite imagery, environmental factors, and historical fire data to proactively identify high-risk forest zones.
+      </p>
+    </div>
+    <div class="animate-in d4 damage-grid">
+      <div class="card text-center" style="border-color:rgba(239,68,68,0.15);">
+        <i data-lucide="bug" style="width:32px;height:32px;color:#f87171;margin:0 auto 12px;display:block;"></i>
+        <p style="font-size:15px;font-weight:600;color:#e5e5e5;">Wildlife Damage</p>
+        <p style="font-size:12px;color:#525252;margin-top:4px;">Habitat destruction & species loss</p>
+      </div>
+      <div class="card text-center" style="border-color:rgba(249,115,22,0.15);">
+        <i data-lucide="wheat-off" style="width:32px;height:32px;color:#fb923c;margin:0 auto 12px;display:block;"></i>
+        <p style="font-size:15px;font-weight:600;color:#e5e5e5;">Crop Loss</p>
+        <p style="font-size:12px;color:#525252;margin-top:4px;">Agricultural devastation</p>
+      </div>
+      <div class="card text-center" style="border-color:rgba(239,68,68,0.15);">
+        <i data-lucide="house-fire" style="width:32px;height:32px;color:#f87171;margin:0 auto 12px;display:block;"></i>
+        <p style="font-size:15px;font-weight:600;color:#e5e5e5;">Property Damage</p>
+        <p style="font-size:12px;color:#525252;margin-top:4px;">Infrastructure & economic loss</p>
+      </div>
+    </div>
+    <div class="animate-in d5 mt-5 flex gap-3 flex-wrap">
+      <span class="tag tag-red"><i data-lucide="clock" style="width:12px;height:12px"></i> Delayed Response</span>
+      <span class="tag tag-red"><i data-lucide="trending-up" style="width:12px;height:12px"></i> Increased Damage</span>
+      <span class="tag tag-red"><i data-lucide="shuffle" style="width:12px;height:12px"></i> Inefficient Resources</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 4: OBJECTIVES ==================== -->
+<div class="slide" data-slide="3">
+  <div class="blob" style="width:500px;height:500px;background:rgba(59,130,246,0.03);top:5%;left:-150px;"></div>
+  <div class="slide-inner">
+    <div class="animate-in d1">
+      <span class="tag tag-blue mb-4" style="display:inline-flex;">03 — Objectives</span>
+    </div>
+    <h2 class="animate-in d2 gradient-text" style="font-size:clamp(28px,4.5vw,44px);font-weight:600;letter-spacing:-0.02em;margin:16px 0 28px;line-height:1.15;">
+      What We Set Out to Build
+    </h2>
+    <div style="max-width:650px;" class="flex flex-col gap-2">
+      <div class="animate-in d2 obj-item">
+        <div class="obj-num">1</div>
+        <p style="font-size:15px;line-height:1.6;color:#a3a3a3;">Develop an AI system to <strong style="color:#e5e5e5;">predict forest fire risk zones in advance</strong>.</p>
+      </div>
+      <div class="animate-in d3 obj-item">
+        <div class="obj-num">2</div>
+        <p style="font-size:15px;line-height:1.6;color:#a3a3a3;">Integrate <strong style="color:#e5e5e5;">satellite, thermal, vegetation, terrain, and weather data</strong>.</p>
+      </div>
+      <div class="animate-in d4 obj-item">
+        <div class="obj-num">3</div>
+        <p style="font-size:15px;line-height:1.6;color:#a3a3a3;">Generate <strong style="color:#e5e5e5;">easy-to-understand risk maps</strong> for decision-makers.</p>
+      </div>
+      <div class="animate-in d5 obj-item">
+        <div class="obj-num">4</div>
+        <p style="font-size:15px;line-height:1.6;color:#a3a3a3;">Support <strong style="color:#e5e5e5;">early warning and prevention planning</strong> instead of reacting after a fire has begun.</p>
+      </div>
+    </div>
+    <div class="animate-in d6 mt-8 flex items-center gap-4 flex-wrap">
+      <div class="tag" style="padding:10px 20px;font-size:14px;"><i data-lucide="database" style="width:14px;height:14px;color:#525252"></i> Raw Data</div>
+      <i data-lucide="arrow-right" style="width:20px;height:20px;color:rgba(249,115,22,0.4)"></i>
+      <div class="tag tag-orange" style="padding:10px 20px;font-size:14px;font-weight:600;"><i data-lucide="flame" style="width:14px;height:14px"></i> PyroSCAN</div>
+      <i data-lucide="arrow-right" style="width:20px;height:20px;color:rgba(59,130,246,0.4)"></i>
+      <div class="tag tag-blue" style="padding:10px 20px;font-size:14px;"><i data-lucide="map" style="width:14px;height:14px"></i> Risk Maps</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 5: PROPOSED SOLUTION ==================== -->
+<div class="slide" data-slide="4">
+  <div class="blob" style="width:700px;height:700px;background:rgba(249,115,22,0.035);top:-200px;right:-200px;"></div>
+  <div class="slide-inner">
+    <div class="animate-in d1">
+      <span class="tag tag-orange mb-4" style="display:inline-flex;">04 — Proposed Solution</span>
+    </div>
+    <h2 class="animate-in d2 gradient-text" style="font-size:clamp(28px,4.5vw,44px);font-weight:600;letter-spacing:-0.02em;margin:16px 0 24px;line-height:1.15;">
+      PyroSCAN : How It Works
+    </h2>
+    <div class="grid gap-4" style="max-width:720px;">
+      <div class="animate-in d2 card flex gap-4 items-start">
+        <div style="flex-shrink:0;width:36px;height:36px;border-radius:10px;background:rgba(59,130,246,0.1);display:flex;align-items:center;justify-content:center;">
+          <i data-lucide="satellite" style="width:18px;height:18px;color:#60a5fa"></i>
+        </div>
+        <p style="font-size:15px;line-height:1.6;color:#a3a3a3;">PyroSCAN processes <strong style="color:#e5e5e5;">multi-source satellite and environmental data</strong> from Sentinel-2 and MODIS.</p>
+      </div>
+      <div class="animate-in d3 card flex gap-4 items-start">
+        <div style="flex-shrink:0;width:36px;height:36px;border-radius:10px;background:rgba(249,115,22,0.1);display:flex;align-items:center;justify-content:center;">
+          <i data-lucide="brain-circuit" style="width:18px;height:18px;color:#fb923c"></i>
+        </div>
+        <p style="font-size:15px;line-height:1.6;color:#a3a3a3;">AI models analyze <strong style="color:#e5e5e5;">vegetation stress, temperature, terrain</strong>, and proximity to human activity.</p>
+      </div>
+      <div class="animate-in d4 card flex gap-4 items-start">
+        <div style="flex-shrink:0;width:36px;height:36px;border-radius:10px;background:rgba(34,197,94,0.1);display:flex;align-items:center;justify-content:center;">
+          <i data-lucide="map-pinned" style="width:18px;height:18px;color:#4ade80"></i>
+        </div>
+        <p style="font-size:15px;line-height:1.6;color:#a3a3a3;">Outputs <strong style="color:#e5e5e5;">dynamic forest fire risk maps</strong> classified as <span style="color:#4ade80;">Low</span>, <span style="color:#fbbf24;">Medium</span>, and <span style="color:#f87171;">High</span> risk.</p>
+      </div>
+    </div>
+    <div class="animate-in d5 mt-6 card" style="border-color:rgba(249,115,22,0.15);background:rgba(249,115,22,0.04);max-width:720px;">
+      <p style="font-size:16px;font-weight:500;color:#e5e5e5;">
+        <i data-lucide="target" style="width:18px;height:18px;color:#fb923c;display:inline;vertical-align:-3px;margin-right:6px;"></i>
+        End result: <span class="fire-gradient-text">Proactive monitoring</span> instead of reactive response.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 6: NOVELTY & SHOWSTOPPER ==================== -->
+<div class="slide" data-slide="5">
+  <div class="blob" style="width:500px;height:500px;background:rgba(249,115,22,0.04);bottom:-100px;right:-100px;"></div>
+  <div class="slide-inner">
+    <div class="animate-in d1">
+      <span class="tag tag-orange mb-4" style="display:inline-flex;">05 — Novelty & Show Stopper</span>
+    </div>
+    <h2 class="animate-in d2 gradient-text" style="font-size:clamp(28px,4.5vw,44px);font-weight:600;letter-spacing:-0.02em;margin:16px 0 28px;line-height:1.15;">
+      What Sets Us Apart
+    </h2>
+    <div class="grid gap-4" style="max-width:700px;">
+      <div class="animate-in d2 card flex gap-4 items-start">
+        <i data-lucide="layers" style="width:20px;height:20px;color:#60a5fa;flex-shrink:0;margin-top:2px;"></i>
+        <div>
+          <p style="font-size:15px;font-weight:500;color:#e5e5e5;margin-bottom:2px;">Multi-Source Data Fusion</p>
+          <p style="font-size:13px;color:#737373;">Combines Sentinel-2 optical data + MODIS thermal data for comprehensive analysis.</p>
+        </div>
+      </div>
+      <div class="animate-in d3 card flex gap-4 items-start">
+        <i data-lucide="brain" style="width:20px;height:20px;color:#fb923c;flex-shrink:0;margin-top:2px;"></i>
+        <div>
+          <p style="font-size:15px;font-weight:500;color:#e5e5e5;margin-bottom:2px;">AI-Based Risk Scoring</p>
+          <p style="font-size:13px;color:#737373;">Uses intelligent ML scoring instead of simple, rigid thresholds.</p>
+        </div>
+      </div>
+      <div class="animate-in d4 card flex gap-4 items-start">
+        <i data-lucide="palette" style="width:20px;height:20px;color:#4ade80;flex-shrink:0;margin-top:2px;"></i>
+        <div>
+          <p style="font-size:15px;font-weight:500;color:#e5e5e5;margin-bottom:2px;">Accessible Visualization</p>
+          <p style="font-size:13px;color:#737373;">Color-coded spatial risk maps usable by non-technical users.</p>
+        </div>
+      </div>
+      <div class="animate-in d5 card flex gap-4 items-start">
+        <i data-lucide="scaling" style="width:20px;height:20px;color:#c084fc;flex-shrink:0;margin-top:2px;"></i>
+        <div>
+          <p style="font-size:15px;font-weight:500;color:#e5e5e5;margin-bottom:2px;">Region Scalability</p>
+          <p style="font-size:13px;color:#737373;">Scalable to other regions without retraining from scratch.</p>
+        </div>
+      </div>
+    </div>
+    <div class="animate-in d6 showstopper-box mt-6" style="max-width:700px;">
+      <div class="flex items-center gap-3 mb-2">
+        <i data-lucide="zap" style="width:22px;height:22px;color:#fb923c"></i>
+        <span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;color:#fb923c;">Show Stopper</span>
+      </div>
+      <p style="font-size:18px;font-weight:600;color:#e5e5e5;line-height:1.4;">
+        PyroSCAN predicts fire risk <span class="fire-gradient-text">before ignition</span>, not after detection.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 7: METHODOLOGY ==================== -->
+<div class="slide" data-slide="6">
+  <div class="blob" style="width:600px;height:600px;background:rgba(59,130,246,0.03);top:-150px;left:-150px;"></div>
+  <div class="slide-inner text-center">
+    <div class="animate-in d1">
+      <span class="tag tag-blue mb-4" style="display:inline-flex;">06 — Methodology</span>
+    </div>
+    <h2 class="animate-in d2 gradient-text" style="font-size:clamp(28px,4.5vw,44px);font-weight:600;letter-spacing:-0.02em;margin:16px 0 32px;line-height:1.15;">
+      Data to Decision Pipeline
+    </h2>
+    <div class="animate-in d3 method-flow mb-8">
+      <div class="method-box" style="border-color:rgba(59,130,246,0.2);background:rgba(59,130,246,0.06);">
+        <i data-lucide="satellite-dish" style="width:16px;height:16px;color:#60a5fa;display:inline;vertical-align:-2px;margin-right:6px;"></i>
+        Satellite APIs
+      </div>
+      <i data-lucide="chevron-right" style="width:18px;height:18px;color:rgba(255,255,255,0.15);flex-shrink:0;"></i>
+      <div class="method-box">
+        <i data-lucide="globe" style="width:16px;height:16px;color:#a3a3a3;display:inline;vertical-align:-2px;margin-right:6px;"></i>
+        Raw Earth Data
+      </div>
+      <i data-lucide="chevron-right" style="width:18px;height:18px;color:rgba(255,255,255,0.15);flex-shrink:0;"></i>
+      <div class="method-box" style="border-color:rgba(34,197,94,0.2);background:rgba(34,197,94,0.06);">
+        <i data-lucide="map" style="width:16px;height:16px;color:#4ade80;display:inline;vertical-align:-2px;margin-right:6px;"></i>
+        QGIS API
+      </div>
+      <i data-lucide="chevron-right" style="width:18px;height:18px;color:rgba(255,255,255,0.15);flex-shrink:0;"></i>
+      <div class="method-box" style="border-color:rgba(249,115,22,0.2);background:rgba(249,115,22,0.06);">
+        <i data-lucide="brain-circuit" style="width:16px;height:16px;color:#fb923c;display:inline;vertical-align:-2px;margin-right:6px;"></i>
+        PyroPredict
+      </div>
+      <i data-lucide="chevron-right" style="width:18px;height:18px;color:rgba(255,255,255,0.15);flex-shrink:0;"></i>
+      <div class="method-box" style="border-color:rgba(168,85,247,0.2);background:rgba(168,85,247,0.06);">
+        <i data-lucide="layout-dashboard" style="width:16px;height:16px;color:#c084fc;display:inline;vertical-align:-2px;margin-right:6px;"></i>
+        Dashboard
+      </div>
+    </div>
+    <div class="animate-in d4 card text-left" style="max-width:700px;margin:0 auto;">
+      <p style="font-size:14px;color:#a3a3a3;line-height:1.7;margin-bottom:16px;">
+        Satellite APIs provide raw Earth observation data, geospatially processed using QGIS for spatial alignment and accuracy. The cleaned data is passed into an ML model analyzing historical and environmental patterns. Outputs are presented through an interactive dashboard.
+      </p>
+      <p style="font-size:12px;color:#525252;text-transform:uppercase;letter-spacing:0.1em;font-weight:500;margin-bottom:10px;">Dashboard Outputs</p>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="flex items-center gap-2" style="font-size:13px;color:#737373;">
+          <i data-lucide="trending-up" style="width:14px;height:14px;color:#60a5fa"></i> LST time-series graph
+        </div>
+        <div class="flex items-center gap-2" style="font-size:13px;color:#737373;">
+          <i data-lucide="map-pin" style="width:14px;height:14px;color:#fb923c"></i> Historical fire map
+        </div>
+        <div class="flex items-center gap-2" style="font-size:13px;color:#737373;">
+          <i data-lucide="bar-chart-3" style="width:14px;height:14px;color:#4ade80"></i> Feature importance chart
+        </div>
+        <div class="flex items-center gap-2" style="font-size:13px;color:#737373;">
+          <i data-lucide="git-compare" style="width:14px;height:14px;color:#c084fc"></i> Predicted vs historical
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 8: TECH STACK & BUDGET ==================== -->
+<div class="slide" data-slide="7">
+  <div class="blob" style="width:500px;height:500px;background:rgba(34,197,94,0.03);bottom:-100px;right:-100px;"></div>
+  <div class="slide-inner">
+    <div class="animate-in d1">
+      <span class="tag tag-green mb-4" style="display:inline-flex;">07 — Tech Stack & Budget</span>
+    </div>
+    <h2 class="animate-in d2 gradient-text" style="font-size:clamp(28px,4.5vw,44px);font-weight:600;letter-spacing:-0.02em;margin:16px 0 24px;line-height:1.15;">
+      Built for Scale, Priced for Impact
+    </h2>
+    <div class="grid gap-6" style="grid-template-columns: 1fr 1fr; max-width:800px;">
+      <div class="animate-in d3">
+        <p style="font-size:12px;color:#525252;text-transform:uppercase;letter-spacing:0.1em;font-weight:500;margin-bottom:12px;">Machine Learning</p>
+        <div class="flex flex-wrap gap-2">
+          <span class="tech-badge">Python</span>
+          <span class="tech-badge">NumPy</span>
+          <span class="tech-badge">Pandas</span>
+          <span class="tech-badge">Scikit-learn</span>
+        </div>
+        <p style="font-size:12px;color:#525252;text-transform:uppercase;letter-spacing:0.1em;font-weight:500;margin:16px 0 12px;">Geospatial</p>
+        <div class="flex flex-wrap gap-2">
+          <span class="tech-badge">QGIS 3.40.15</span>
+        </div>
+        <p style="font-size:12px;color:#525252;text-transform:uppercase;letter-spacing:0.1em;font-weight:500;margin:16px 0 12px;">Backend</p>
+        <div class="flex flex-wrap gap-2">
+          <span class="tech-badge">FastAPI</span>
+        </div>
+      </div>
+      <div class="animate-in d4">
+        <p style="font-size:12px;color:#525252;text-transform:uppercase;letter-spacing:0.1em;font-weight:500;margin-bottom:12px;">Frontend</p>
+        <div class="flex flex-wrap gap-2">
+          <span class="tech-badge">HTML</span>
+          <span class="tech-badge">CSS</span>
+          <span class="tech-badge">JavaScript</span>
+          <span class="tech-badge">Leaflet</span>
+        </div>
+        <p style="font-size:12px;color:#525252;text-transform:uppercase;letter-spacing:0.1em;font-weight:500;margin:16px 0 12px;">Data Sources</p>
+        <div class="flex flex-wrap gap-2">
+          <span class="tech-badge">Sentinel-2</span>
+          <span class="tech-badge">MODIS</span>
+          <span class="tech-badge">FIRMS NASA</span>
+        </div>
+      </div>
+    </div>
+    <div class="animate-in d5 mt-6 card" style="max-width:800px;border-color:rgba(34,197,94,0.15);background:rgba(34,197,94,0.03);">
+      <div class="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <p style="font-size:13px;color:#525252;text-transform:uppercase;letter-spacing:0.1em;font-weight:500;margin-bottom:6px;">Estimated Budget</p>
+          <div class="flex gap-4 flex-wrap" style="font-size:13px;color:#737373;">
+            <span>Data: <strong style="color:#4ade80;">Free</strong></span>
+            <span>Cloud GPU: <strong style="color:#e5e5e5;">$15–20</strong></span>
+            <span>Storage: <strong style="color:#e5e5e5;">~$0.25</strong></span>
+          </div>
+        </div>
+        <div class="budget-highlight">
+          <i data-lucide="piggy-bank" style="width:20px;height:20px"></i>
+          UNDER $100
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 9: DELIVERABLES ==================== -->
+<div class="slide" data-slide="8">
+  <div class="blob" style="width:500px;height:500px;background:rgba(59,130,246,0.03);top:0;right:-150px;"></div>
+  <div class="slide-inner">
+    <div class="animate-in d1">
+      <span class="tag tag-blue mb-4" style="display:inline-flex;">08 — Deliverables & Outcome</span>
+    </div>
+    <h2 class="animate-in d2 gradient-text" style="font-size:clamp(28px,4.5vw,44px);font-weight:600;letter-spacing:-0.02em;margin:16px 0 28px;line-height:1.15;">
+      What We Deliver
+    </h2>
+    <div class="grid gap-6" style="grid-template-columns: 1fr 1fr; max-width:780px;">
+      <div class="animate-in d3">
+        <p style="font-size:12px;color:#60a5fa;text-transform:uppercase;letter-spacing:0.1em;font-weight:500;margin-bottom:14px;">Deliverables</p>
+        <div class="flex flex-col gap-3">
+          <div class="card flex items-start gap-3">
+            <i data-lucide="globe" style="width:18px;height:18px;color:#60a5fa;flex-shrink:0;margin-top:1px;"></i>
+            <p style="font-size:14px;color:#a3a3a3;line-height:1.5;">Web-based fire risk mapping system</p>
+          </div>
+          <div class="card flex items-start gap-3">
+            <i data-lucide="download" style="width:18px;height:18px;color:#60a5fa;flex-shrink:0;margin-top:1px;"></i>
+            <p style="font-size:14px;color:#a3a3a3;line-height:1.5;">Downloadable risk maps <span style="color:#525252;font-size:12px;">(GeoTIFF / PNG)</span></p>
+          </div>
+          <div class="card flex items-start gap-3">
+            <i data-lucide="plug" style="width:18px;height:18px;color:#60a5fa;flex-shrink:0;margin-top:1px;"></i>
+            <p style="font-size:14px;color:#a3a3a3;line-height:1.5;">API-ready backend for government integration</p>
+          </div>
+        </div>
+      </div>
+      <div class="animate-in d4">
+        <p style="font-size:12px;color:#4ade80;text-transform:uppercase;letter-spacing:0.1em;font-weight:500;margin-bottom:14px;">Expected Outcome</p>
+        <div class="flex flex-col gap-3">
+          <div class="card flex items-start gap-3">
+            <i data-lucide="radar" style="width:18px;height:18px;color:#4ade80;flex-shrink:0;margin-top:1px;"></i>
+            <p style="font-size:14px;color:#a3a3a3;line-height:1.5;">Early fire risk identification</p>
+          </div>
+          <div class="card flex items-start gap-3">
+            <i data-lucide="zap" style="width:18px;height:18px;color:#4ade80;flex-shrink:0;margin-top:1px;"></i>
+            <p style="font-size:14px;color:#a3a3a3;line-height:1.5;">Better preparedness and faster response</p>
+          </div>
+          <div class="card flex items-start gap-3">
+            <i data-lucide="shield-check" style="width:18px;height:18px;color:#4ade80;flex-shrink:0;margin-top:1px;"></i>
+            <p style="font-size:14px;color:#a3a3a3;line-height:1.5;">Reduced environmental and economic loss</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- ==================== SLIDE 11: SCREENSHOT 1 ==================== -->
+<div class="slide" data-slide="10">
+  <div class="slide-inner text-center">
+    <div class="animate-in d1">
+      <span class="tag tag-orange mb-4" style="display:inline-flex;">09 — Live Output</span>
+    </div>
+    <h2 class="animate-in d2 gradient-text" style="font-size:clamp(28px,4.5vw,44px);font-weight:600;letter-spacing:-0.02em;margin:16px 0 8px;line-height:1.15;">
+      Thermal & IR Band Analysis
+    </h2>
+    <p class="animate-in d2" style="font-size:14px;color:#525252;margin-bottom:24px;">Satellite-derived thermal infrared visualization of the Area of Interest</p>
+    <div class="animate-in d3 screenshot-placeholder glow-orange" style="max-width:800px;margin:0 auto;">
+      <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;background:linear-gradient(135deg,#0A0A0A 0%,#1a0a00 30%,#0a0a14 70%,#0A0A0A 100%);">
+        <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 30% 40%, rgba(249,115,22,0.08) 0%, transparent 60%),radial-gradient(ellipse at 70% 60%, rgba(239,68,68,0.06) 0%, transparent 50%);"></div>
+        <div style="position:relative;z-index:1;">
+          <i data-lucide="eye" style="width:48px;height:48px;color:rgba(249,115,22,0.3);margin:0 auto 12px;display:block;"></i>
+          <p style="font-size:14px;color:#525252;font-weight:500;">Thermal & IR Bands Visualization</p>
+          <p style="font-size:12px;color:#404040;margin-top:4px;">MODIS / Sentinel-2 thermal infrared composite</p>
+          <div class="flex justify-center gap-3 mt-4">
+            <span style="font-size:11px;padding:4px 12px;border-radius:6px;background:rgba(59,130,246,0.1);color:#60a5fa;border:1px solid rgba(59,130,246,0.2);">SWIR</span>
+            <span style="font-size:11px;padding:4px 12px;border-radius:6px;background:rgba(249,115,22,0.1);color:#fb923c;border:1px solid rgba(249,115,22,0.2);">TIR</span>
+            <span style="font-size:11px;padding:4px 12px;border-radius:6px;background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.2);">LST</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 12: SCREENSHOT 2 ==================== -->
+<div class="slide" data-slide="11">
+  <div class="slide-inner text-center">
+    <div class="animate-in d1">
+      <span class="tag tag-red mb-4" style="display:inline-flex;">10 — Live Output</span>
+    </div>
+    <h2 class="animate-in d2 gradient-text" style="font-size:clamp(28px,4.5vw,44px);font-weight:600;letter-spacing:-0.02em;margin:16px 0 8px;line-height:1.15;">
+      Land Surface Temperature Map
+    </h2>
+    <p class="animate-in d2" style="font-size:14px;color:#525252;margin-bottom:24px;">LST distribution across the study region — key input for fire risk scoring</p>
+    <div class="animate-in d3 screenshot-placeholder glow-orange" style="max-width:800px;margin:0 auto;">
+      <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;background:linear-gradient(135deg,#0A0A0A 0%,#140a00 30%,#0a0014 70%,#0A0A0A 100%);position:relative;overflow:hidden;">
+        <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%, rgba(239,68,68,0.06) 0%, transparent 60%);"></div>
+        <!-- Simulated LST color bar -->
+        <div style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);z-index:1;display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;color:#60a5fa;">20°C</span>
+          <div style="width:200px;height:8px;border-radius:4px;background:linear-gradient(90deg,#2563eb,#22c55e,#eab308,#f97316,#ef4444,#dc2626);"></div>
+          <span style="font-size:11px;color:#f87171;">50°C</span>
+        </div>
+        <div style="position:relative;z-index:1;">
+          <i data-lucide="thermometer" style="width:48px;height:48px;color:rgba(239,68,68,0.3);margin:0 auto 12px;display:block;"></i>
+          <p style="font-size:14px;color:#525252;font-weight:500;">Land Surface Temperature Map</p>
+          <p style="font-size:12px;color:#404040;margin-top:4px;">Derived from MODIS thermal bands</p>
+          <div class="flex justify-center gap-3 mt-4">
+            <span style="font-size:11px;padding:4px 12px;border-radius:6px;background:rgba(34,197,94,0.1);color:#4ade80;border:1px solid rgba(34,197,94,0.2);">Low Risk</span>
+            <span style="font-size:11px;padding:4px 12px;border-radius:6px;background:rgba(234,179,8,0.1);color:#fbbf24;border:1px solid rgba(234,179,8,0.2);">Medium Risk</span>
+            <span style="font-size:11px;padding:4px 12px;border-radius:6px;background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.2);">High Risk</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 13: REFERENCES ==================== -->
+<div class="slide" data-slide="12">
+  <div class="slide-inner">
+    <div class="animate-in d1">
+      <span class="tag" style="display:inline-flex;border-color:rgba(255,255,255,0.1);">11 — References</span>
+    </div>
+    <h2 class="animate-in d2 gradient-text" style="font-size:clamp(28px,4.5vw,40px);font-weight:600;letter-spacing:-0.02em;margin:16px 0 28px;line-height:1.15;">
+      Data Sources & Literature
+    </h2>
+    <div class="flex flex-col gap-3" style="max-width:720px;">
+      <a href="https://documentation.dataspace.copernicus.eu" target="_blank" class="animate-in d2 ref-link">
+        <i data-lucide="external-link" style="width:14px;height:14px;color:#60a5fa;flex-shrink:0;"></i>
+        <span class="ref-title">Copernicus Browser</span>
+        <span style="color:#404040;font-size:12px;margin-left:auto;">dataspace.copernicus.eu</span>
+      </a>
+      <a href="https://search.earthdata.nasa.gov" target="_blank" class="animate-in d3 ref-link">
+        <i data-lucide="external-link" style="width:14px;height:14px;color:#60a5fa;flex-shrink:0;"></i>
+        <span class="ref-title">Earthdata NASA</span>
+        <span style="color:#404040;font-size:12px;margin-left:auto;">earthdata.nasa.gov</span>
+      </a>
+      <a href="https://firms.modaps.eosdis.nasa.gov/active_fire/" target="_blank" class="animate-in d3 ref-link">
+        <i data-lucide="external-link" style="width:14px;height:14px;color:#fb923c;flex-shrink:0;"></i>
+        <span class="ref-title">FIRMS Fire Data — NASA</span>
+        <span style="color:#404040;font-size:12px;margin-left:auto;">firms.modaps.eosdis.nasa.gov</span>
+      </a>
+      <a href="https://www.fao.org/forestry/firemanagement/en" target="_blank" class="animate-in d4 ref-link">
+        <i data-lucide="external-link" style="width:14px;height:14px;color:#4ade80;flex-shrink:0;"></i>
+        <span class="ref-title">FAO Report on Fire Management</span>
+        <span style="color:#404040;font-size:12px;margin-left:auto;">fao.org</span>
+      </a>
+      <a href="https://www.researchgate.net/publication/363225926" target="_blank" class="animate-in d5 ref-link">
+        <i data-lucide="external-link" style="width:14px;height:14px;color:#c084fc;flex-shrink:0;"></i>
+        <span class="ref-title">Predicting Wildfires Using ML Methods</span>
+        <span style="color:#404040;font-size:12px;margin-left:auto;">researchgate.net</span>
+      </a>
+      <a href="https://cwfis.cfs.nrcan.gc.ca/home" target="_blank" class="animate-in d6 ref-link">
+        <i data-lucide="external-link" style="width:14px;height:14px;color:#fbbf24;flex-shrink:0;"></i>
+        <span class="ref-title">Canadian Wildland Fire Information System</span>
+        <span style="color:#404040;font-size:12px;margin-left:auto;">cwfis.cfs.nrcan.gc.ca</span>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 10: TEAM ==================== -->
+<div class="slide" data-slide="11">
+  <div class="blob" style="width:500px;height:500px;background:rgba(168,85,247,0.03);bottom:-150px;left:-100px;"></div>
+  <div class="slide-inner text-center">
+    <div class="animate-in d1">
+      <span class="tag" style="display:inline-flex;border-color:rgba(168,85,247,0.3);background:rgba(168,85,247,0.08);color:#c084fc;">12 — Team Pyro</span>
+    </div>
+    <h2 class="animate-in d2 gradient-text" style="font-size:clamp(28px,4.5vw,44px);font-weight:600;letter-spacing:-0.02em;margin:16px 0 12px;line-height:1.15;">
+      The People Behind PyroSCAN
+    </h2>
+    <p class="animate-in d2" style="font-size:14px;color:#525252;margin-bottom:36px;">KCC Institute of Technology and Management</p>
+    <div class="flex justify-center gap-6 flex-wrap">
+      <div class="animate-in d3 card" style="width:280px;padding:32px;text-align:center;">
+        <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,rgba(249,115,22,0.15),rgba(239,68,68,0.1));border:1px solid rgba(249,115,22,0.2);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+          <i data-lucide="user" style="width:28px;height:28px;color:#fb923c"></i>
+        </div>
+        <p style="font-size:18px;font-weight:600;color:#e5e5e5;margin-bottom:4px;">Divyanshu Swain</p>
+        <p style="font-size:13px;color:#737373;margin-bottom:12px;">Lead Developer & ML Engineer</p>
+        <div class="flex justify-center gap-2 flex-wrap">
+          <span class="tag tag-orange" style="font-size:11px;padding:4px 10px;">Python</span>
+          <span class="tag tag-blue" style="font-size:11px;padding:4px 10px;">ML</span>
+          <span class="tag tag-green" style="font-size:11px;padding:4px 10px;">QGIS</span>
+        </div>
+      </div>
+      <div class="animate-in d4 card" style="width:280px;padding:32px;text-align:center;">
+        <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,rgba(59,130,246,0.15),rgba(96,165,250,0.1));border:1px solid rgba(59,130,246,0.2);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+          <i data-lucide="user" style="width:28px;height:28px;color:#60a5fa"></i>
+        </div>
+        <p style="font-size:18px;font-weight:600;color:#e5e5e5;margin-bottom:4px;">Jai Mall</p>
+        <p style="font-size:13px;color:#737373;margin-bottom:12px;">Frontend & Geospatial Analyst</p>
+        <div class="flex justify-center gap-2 flex-wrap">
+          <span class="tag tag-blue" style="font-size:11px;padding:4px 10px;">Frontend</span>
+          <span class="tag tag-green" style="font-size:11px;padding:4px 10px;">GIS</span>
+          <span class="tag" style="font-size:11px;padding:4px 10px;border-color:rgba(168,85,247,0.3);color:#c084fc;">API</span>
+        </div>
+      </div>
+    </div>
+    <div class="animate-in d5 mt-8 flex justify-center gap-4">
+      <a href="mailto:divswain598@gmail.com" class="ref-link" style="font-size:12px;">
+        <i data-lucide="mail" style="width:14px;height:14px;color:#60a5fa"></i>
+        <span>divswain598@gmail.com</span>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 14: THANK YOU ==================== -->
+<div class="slide" data-slide="13">
+  <div class="blob pulse-slow" style="width:900px;height:900px;background:rgba(249,115,22,0.04);top:-300px;left:50%;transform:translateX(-50%);"></div>
+  <div class="blob pulse-slow" style="width:600px;height:600px;background:rgba(59,130,246,0.03);bottom:-200px;left:50%;transform:translateX(-50%);"></div>
+  <div class="slide-inner text-center">
+    <div class="animate-in d1 float" style="margin-bottom:24px;">
+      <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,rgba(249,115,22,0.12),rgba(239,68,68,0.08));border:1px solid rgba(249,115,22,0.2);display:flex;align-items:center;justify-content:center;margin:0 auto;">
+        <i data-lucide="flame" style="width:32px;height:32px;color:#fb923c"></i>
+      </div>
+    </div>
+    <h2 class="animate-in d2 gradient-text" style="font-size:clamp(48px,8vw,72px);font-weight:700;letter-spacing:-0.03em;line-height:1;margin-bottom:16px;">
+      Thank You
+    </h2>
+    <p class="animate-in d3" style="font-size:18px;color:#525252;font-weight:300;margin-bottom:8px;">
+      From all members of <strong style="color:#e5e5e5;">Team Pyro</strong>
+    </p>
+    <p class="animate-in d4" style="font-size:14px;color:#404040;margin-bottom:32px;">
+      PyroSCAN — Predict, Prevent, Protect
+    </p>
+    <div class="animate-in d5 flex items-center justify-center gap-4 flex-wrap">
+      <span class="tag tag-orange">SAIH_26_203</span>
+      <span class="tag tag-blue">Track 10: Open Innovation</span>
+    </div>
+    <div class="animate-in d6 mt-6" style="font-size:12px;color:#333;">
+      2nd SmallAI Hackathon 2026 · Buffdale ACM Chapter · 19 April 2026
+    </div>
+  </div>
+</div>
+
+<script>
+  // Initialize Lucide icons
+  lucide.createIcons();
+
+  // Slide navigation
+  const slides = document.querySelectorAll('.slide');
+  const totalSlides = slides.length;
+  let currentSlide = 0;
+
+  // Create nav dots
+  const navDotsContainer = document.getElementById('navDots');
+  for (let i = 0; i < totalSlides; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+    dot.addEventListener('click', () => goToSlide(i));
+    navDotsContainer.appendChild(dot);
+  }
+
+  function updateUI() {
+    // Update slides
+    slides.forEach((s, i) => {
+      s.classList.toggle('active', i === currentSlide);
+    });
+
+    // Update dots
+    document.querySelectorAll('.nav-dot').forEach((d, i) => {
+      d.classList.toggle('active', i === currentSlide);
+    });
+
+    // Update progress bar
+    const progress = ((currentSlide + 1) / totalSlides) * 100;
+    document.getElementById('progressBar').style.width = progress + '%';
+
+    // Update slide number
+    const num = String(currentSlide + 1).padStart(2, '0');
+    const total = String(totalSlides).padStart(2, '0');
+    document.getElementById('slideNum').textContent = num + ' / ' + total;
+  }
+
+  function goToSlide(index) {
+    if (index < 0 || index >= totalSlides || index === currentSlide) return;
+    currentSlide = index;
+    updateUI();
+  }
+
+  function nextSlide() {
+    goToSlide(currentSlide + 1);
+  }
+
+  function prevSlide() {
+    goToSlide(currentSlide - 1);
+  }
+
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ' || e.key === 'PageDown') {
+      e.preventDefault();
+      nextSlide();
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
+      e.preventDefault();
+      prevSlide();
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      goToSlide(0);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      goToSlide(totalSlides - 1);
+    }
+  });
+
+  // Touch/swipe navigation
+  let touchStartX = 0;
+  let touchStartY = 0;
+  document.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+  }, { passive: true });
+  document.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].screenX - touchStartX;
+    const dy = e.changedTouches[0].screenY - touchStartY;
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+      if (dx < 0) nextSlide();
+      else prevSlide();
+    }
+  }, { passive: true });
+
+  // Mouse wheel navigation
+  let wheelTimeout = false;
+  document.addEventListener('wheel', (e) => {
+    if (wheelTimeout) return;
+    wheelTimeout = true;
+    setTimeout(() => wheelTimeout = false, 800);
+    if (e.deltaY > 0) nextSlide();
+    else if (e.deltaY < 0) prevSlide();
+  }, { passive: true });
+
+  // Initial state
+  updateUI();
+</script>
+
+</body>
+</html>
