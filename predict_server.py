@@ -1,10 +1,3 @@
-"""Compatibility helpers for legacy PyroScan pickle models.
-
-These lightweight wrappers were originally pickled from a module named
-``predict_server``. Re-introducing the module lets us load those models
-without retraining them.
-"""
-
 from __future__ import annotations
 
 import math
