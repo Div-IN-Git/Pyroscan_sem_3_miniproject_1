@@ -1,4 +1,3 @@
-"""PyroScan ModelLoader — plug-and-play AI model hot-loader"""
 from __future__ import annotations
 import json, logging, os, threading
 from enum import Enum
